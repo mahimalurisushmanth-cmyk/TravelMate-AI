@@ -1,0 +1,6 @@
+{
+  "name": "TravelMate AI",
+  "description": "Smart Travel Planner is an AI-powered tourism portal that builds highly customized day-by-day itineraries, places to visit, suggested activities, food recommendations, estimated expenses in INR, and tailored packing checklists.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
