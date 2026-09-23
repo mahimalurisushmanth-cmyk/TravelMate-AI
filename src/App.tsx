@@ -3,11 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from "react";
 import { 
   Compass, 
@@ -205,10 +200,14 @@ export default function App() {
       return match ? match.label : id;
     });
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 45_000);
+
     try {
       const response = await fetch("/api/generate-itinerary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           destination: destination.trim(),
           days,
@@ -219,12 +218,15 @@ export default function App() {
         }),
       });
 
+      const data = await response.json().catch(() => null);
+
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Server responded with an error status.");
+        throw new Error(data?.error || "Server responded with an error status.");
       }
 
-      const data = await response.json();
+      if (!data?.itinerary) {
+        throw new Error("The server returned an incomplete itinerary.");
+      }
       setItinerary(data.itinerary);
       setApiMetadata({
         source: data.source,
@@ -233,10 +235,17 @@ export default function App() {
       setActiveDayTab(1);
       setShowAllDays(false);
       setStep("results");
-    } catch (err: any) {
-      console.error("Submission failed, utilizing offline failsafe directly:", err);
-      setValidationError(`⚠️ Failed to communicate with server: ${err.message}. Please retry.`);
+    } catch (err: unknown) {
+      console.error("Submission failed:", err);
+      const message = err instanceof DOMException && err.name === "AbortError"
+        ? "The request timed out after 45 seconds."
+        : err instanceof Error
+          ? err.message
+          : "An unexpected error occurred.";
+      setValidationError(`⚠️ Failed to generate itinerary: ${message} Please retry.`);
       setStep("form");
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   };
 
@@ -340,7 +349,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased flex flex-col">
       
       {/* HEADER BAR */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-xs">
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           {/* Logo */}
@@ -350,7 +359,7 @@ export default function App() {
             id="app-header-logo"
           >
             <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-sm group-hover:bg-emerald-700 transition-colors">
-              <Compass className="w-5 h-5 animate-spin-slow" />
+              <Compass className="w-5 h-5 animate-spin" />
             </div>
             <div>
               <span className="font-extrabold text-lg tracking-tight text-slate-900">
@@ -376,7 +385,7 @@ export default function App() {
               <Bookmark className="w-4 h-4 text-emerald-600" />
               <span>Bookmarks</span>
               {savedTrips.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white shadow-xs">
+                <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white shadow-sm">
                   {savedTrips.length}
                 </span>
               )}
@@ -425,7 +434,7 @@ export default function App() {
                   <div 
                     key={trip.id}
                     onClick={() => handleLoadTrip(trip)}
-                    className="group relative bg-white border border-slate-200 p-3.5 rounded-xl shadow-xs hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer flex flex-col gap-1"
+                    className="group relative bg-white border border-slate-200 p-3.5 rounded-xl shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer flex flex-col gap-1"
                   >
                     <div className="flex justify-between items-start">
                       <span className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">
@@ -490,7 +499,7 @@ export default function App() {
                 <div className="flex flex-wrap gap-4 mt-2">
                   <button 
                     onClick={() => setStep("form")}
-                    className="px-6 py-3.5 bg-emerald-500 text-slate-950 font-bold rounded-xl shadow-md hover:bg-emerald-400 hover:scale-102 active:scale-98 transition-all flex items-center gap-2"
+                    className="px-6 py-3.5 bg-emerald-500 text-slate-950 font-bold rounded-xl shadow-md hover:bg-emerald-400 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
                     id="btn-plan-my-trip"
                   >
                     <Compass className="w-5 h-5" />
@@ -552,7 +561,7 @@ export default function App() {
 
         {/* VIEW 2: TRIP-PLANNING FORM */}
         {step === "form" && (
-          <div className="max-w-3xl mx-auto w-full bg-white border border-slate-200 p-6 md:p-8 rounded-2xl shadow-xs" id="view-form">
+          <div className="max-w-3xl mx-auto w-full bg-white border border-slate-200 p-6 md:p-8 rounded-2xl shadow-sm" id="view-form">
             <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
               <div>
                 <h2 className="text-2xl font-extrabold text-slate-900">Custom Trip Parameters</h2>
@@ -743,7 +752,7 @@ export default function App() {
                         onClick={() => handleToggleInterest(interest.id)}
                         className={`px-3 py-2 text-xs rounded-xl font-bold border transition-all flex items-center gap-1.5 ${
                           isSelected 
-                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs" 
+                            ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" 
                             : "bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300"
                         }`}
                       >
@@ -762,7 +771,7 @@ export default function App() {
                   className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm tracking-wide rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-99"
                   id="btn-generate-trip"
                 >
-                  <Sparkles className="w-4.5 h-4.5" />
+                  <Sparkles className="w-[18px] h-[18px]" />
                   <span>Generate AI Trip Itinerary</span>
                 </button>
                 <button
@@ -780,7 +789,7 @@ export default function App() {
 
         {/* VIEW 3: DYNAMIC LOADING STATE */}
         {step === "loading" && (
-          <div className="max-w-md mx-auto text-center py-16 px-4 flex flex-col items-center gap-6 bg-white border border-slate-200 rounded-2xl shadow-xs" id="view-loading">
+          <div className="max-w-md mx-auto text-center py-16 px-4 flex flex-col items-center gap-6 bg-white border border-slate-200 rounded-2xl shadow-sm" id="view-loading">
             <div className="relative">
               <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
               <Compass className="w-6 h-6 text-emerald-600 absolute top-5 left-5 animate-pulse" />
@@ -813,7 +822,7 @@ export default function App() {
           <div className="flex flex-col gap-6" id="view-results">
             
             {/* Header / Meta card */}
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
               <div className="h-56 relative">
                 <img 
                   src={getHeaderImage(itinerary.destination)} 
@@ -839,10 +848,10 @@ export default function App() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleSaveActiveTrip}
-                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5"
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
                       id="btn-save-trip"
                     >
-                      <Bookmark className="w-4.5 h-4.5" />
+                      <Bookmark className="w-[18px] h-[18px]" />
                       <span>Save Trip</span>
                     </button>
                     <button
@@ -850,7 +859,7 @@ export default function App() {
                       className="px-4 py-2.5 bg-slate-900/60 hover:bg-slate-900 text-white backdrop-blur-md rounded-xl font-bold text-xs border border-white/20 transition-all flex items-center gap-1.5"
                       id="btn-edit-trip"
                     >
-                      <Edit3 className="w-4.5 h-4.5" />
+                      <Edit3 className="w-[18px] h-[18px]" />
                       <span>Edit Parameters</span>
                     </button>
                     <button
@@ -858,7 +867,7 @@ export default function App() {
                       className="px-4 py-2.5 bg-slate-900/60 hover:bg-slate-900 text-white backdrop-blur-md rounded-xl font-bold text-xs border border-white/20 transition-all flex items-center gap-1.5"
                       id="btn-reset-itinerary"
                     >
-                      <RotateCcw className="w-4.5 h-4.5" />
+                      <RotateCcw className="w-[18px] h-[18px]" />
                       <span>New Plan</span>
                     </button>
                   </div>
@@ -908,11 +917,11 @@ export default function App() {
               <div className="lg:col-span-2 flex flex-col gap-4">
                 
                 {/* Day-by-day Itinerary controls */}
-                <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs flex flex-col gap-4">
+                <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex flex-col gap-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div>
                       <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                        <Compass className="w-4.5 h-4.5 text-emerald-600" />
+                        <Compass className="w-[18px] h-[18px] text-emerald-600" />
                         <span>Day-by-Day Program</span>
                       </h3>
                       <p className="text-[11px] text-slate-400">Click on any tab below or expand the entire schedule timeline.</p>
@@ -1035,10 +1044,10 @@ export default function App() {
               <div className="flex flex-col gap-6">
                 
                 {/* Visual Expenses Breakdown */}
-                <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-4">
+                <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm space-y-4">
                   <div className="border-b border-slate-100 pb-2.5">
                     <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                      <TrendingUp className="w-4.5 h-4.5 text-emerald-600" />
+                      <TrendingUp className="w-[18px] h-[18px] text-emerald-600" />
                       <span>Estimated Expense Breakdown</span>
                     </h3>
                     <p className="text-[10px] text-slate-400">Total estimated sum compared to your budget constraint.</p>
@@ -1107,10 +1116,10 @@ export default function App() {
                 </div>
 
                 {/* Interactive Packing Checklist */}
-                <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm space-y-3">
                   <div className="border-b border-slate-100 pb-2.5">
                     <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                      <Briefcase className="w-4.5 h-4.5 text-emerald-600" />
+                      <Briefcase className="w-[18px] h-[18px] text-emerald-600" />
                       <span>Custom Packing Checklist</span>
                     </h3>
                     <p className="text-[10px] text-slate-400">Tailored recommendations. Check items off as you pack!</p>
@@ -1146,10 +1155,10 @@ export default function App() {
                 </div>
 
                 {/* Smart Travel Tips / Survival */}
-                <div className="bg-amber-50/20 border border-amber-200 p-4 rounded-2xl shadow-xs space-y-3">
+                <div className="bg-amber-50/20 border border-amber-200 p-4 rounded-2xl shadow-sm space-y-3">
                   <div>
                     <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                      <Sparkles className="w-4.5 h-4.5 text-amber-600" />
+                      <Sparkles className="w-[18px] h-[18px] text-amber-600" />
                       <span>Smart Survival Travel Tips</span>
                     </h3>
                     <p className="text-[10px] text-slate-400">Crucial local guidelines and etiquette parameters.</p>
@@ -1222,7 +1231,7 @@ export default function App() {
                   <h4 className="font-bold text-xs text-slate-200">Guaranteed Structuring (JSON Schema)</h4>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Historically, developers struggled with parsing messy, raw Markdown tick outputs (<code className="text-amber-300">```json</code>) from LLMs. By setting the <code className="text-amber-300">responseMimeType: "application/json"</code> and defining a strict <code className="text-amber-300">responseSchema</code> object matching our TypeScript types, we ensure Gemini returns a structured data tree that never crashes the frontend.
+                  Historically, developers struggled with parsing messy, raw Markdown tick outputs (<code className="text-amber-300">```json</code>) from LLMs. By setting the <code className="text-amber-300">responseMimeType: "application/json"</code> and defining a strict <code className="text-amber-300">responseJsonSchema</code> object matching our TypeScript types, we ensure Gemini returns a structured data tree that never crashes the frontend.
                 </p>
               </div>
 
@@ -1278,4 +1287,3 @@ export default function App() {
     </div>
   );
 }
-

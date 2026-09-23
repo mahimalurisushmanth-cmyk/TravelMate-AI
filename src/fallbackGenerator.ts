@@ -132,7 +132,7 @@ const GENERIC_TEMPLATES = {
   ],
   tips: [
     "Keep local maps downloaded offline for seamless navigation.",
-    "Ask locals for recommendation on authentic food spots rather than tourist traps.",
+    "Ask locals for recommendations on authentic food spots rather than tourist traps.",
     "Start your days early around 8:30 AM to beat the rush hour at primary attractions.",
     "Double check opening times of museums and historical reserves."
   ],
@@ -152,7 +152,7 @@ const GENERIC_TEMPLATES = {
   activities: [
     { place: "Main Landmark & Viewpoint", desc: "Take beautiful panoramic photographs and learn about the local culture.", cost: 300 },
     { place: "National Museum & Galleries", desc: "Gain fascinating insights into the regional art history and archives.", cost: 200 },
-    { place: "Botanical Botanical Reserves", desc: "An oasis of tranquility featuring rare flora species and relaxation walking paths.", cost: 100 },
+    { place: "Botanical Reserves", desc: "An oasis of tranquility featuring rare flora species and relaxation walking paths.", cost: 100 },
     { place: "Artisan Craft Market", desc: "Witness local craftsmen carving unique wooden or clay artifacts.", cost: 50 },
     { place: "Sunset Hill Observatory", desc: "Observe the skyline of the city/region as lights start flickering on.", cost: 150 }
   ]
@@ -322,14 +322,17 @@ export function generateOfflineItinerary(
     packingChecklist: [
       ...template.packing,
       ...interests.map(interest => {
-        if (interest.toLowerCase() === "nature") return "Action camera or binoculars for wildlife watching";
-        if (interest.toLowerCase() === "adventure") return "Sturdy high-traction sports shoes and quick-dry apparel";
-        if (interest.toLowerCase() === "culture") return "Slightly formal / modest clothing coverings for historical structures";
-        if (interest.toLowerCase() === "food") return "Digestive enzymes & active charcoal tablets";
-        if (interest.toLowerCase() === "shopping") return "Foldable light shopping bag and extra wallet/purse space";
+        const normalizedInterest = interest.toLowerCase();
+        if (normalizedInterest.includes("nature")) return "Action camera or binoculars for wildlife watching";
+        if (normalizedInterest.includes("adventure")) return "Sturdy high-traction sports shoes and quick-dry apparel";
+        if (normalizedInterest.includes("culture") || normalizedInterest.includes("history")) return "Slightly formal / modest clothing for historical or religious sites";
+        if (normalizedInterest.includes("food") || normalizedInterest.includes("dining")) return "Reusable water bottle and any personal digestive aids";
+        if (normalizedInterest.includes("shopping")) return "Foldable light shopping bag and extra wallet/purse space";
+        if (normalizedInterest.includes("relax")) return "Light wellness or swimwear items as appropriate";
+        if (normalizedInterest.includes("photography")) return "Camera/phone charger and spare storage";
         return "Special hobby gear matching " + interest;
       })
-    ],
+    ].slice(0, 8),
     travelTips: template.tips
   };
 }
