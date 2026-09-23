@@ -51,3 +51,47 @@ export interface Itinerary {
   packingChecklist: string[];
   travelTips: string[];
 }
+export interface Place {
+  name: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  rating?: number;
+  mapsUrl?: string;
+}
+
+export interface WeatherInfo {
+  temperature: number;
+  condition: string;
+  rainProbability?: number;
+}
+
+export interface TransportInfo {
+  distanceKm: number;
+  durationMinutes: number;
+}
+
+export interface HotelOption {
+  name: string;
+  pricePerNight: number;
+  rating?: number;
+  address?: string;
+}
+
+export interface FlightOption {
+  airline: string;
+  departure: string;
+  arrival: string;
+  priceInINR: number;
+  duration: string;
+}
+
+
+
+
+
+
+
+
+
+
