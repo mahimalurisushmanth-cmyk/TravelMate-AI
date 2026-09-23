@@ -95,7 +95,7 @@ Output Preferred Language: ${normLanguage}.
 The response MUST strictly conform to the expected responseSchema structure. Make sure estimated expenses are calculated dynamically and sum up logically close to the desired budget. Include specific places to visit, daytime activities, regional food recommendations (e.g. breakfast, lunch, dinner spots), detailed packing checklist, and local survival travel tips.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+       model: "gemini-2.5-flash",
         contents: userPrompt,
         config: {
           systemInstruction: "You are TravelMate AI, a professional tourist guide and travel planner. You generate clear, readable itineraries that highlight specific local destinations, cultural insights, local culinary venues, transit options, and packing guidelines. All budget values and costs MUST be in Indian Rupees (INR). Return your response strictly in the requested JSON schema. Do not output anything outside of the JSON object.",
